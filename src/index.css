@@ -5,6 +5,9 @@ body {
     sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  background-color: #000000;
+  background-image: url('./assets/map1.png');
+  color: #ffffff;
 }
 
 code {
@@ -17,6 +20,6 @@ ul {
 }
 
 img {
-  max-width: 30%;
+  max-width: 25%;
   height: auto;
 }

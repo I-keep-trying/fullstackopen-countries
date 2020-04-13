@@ -1,241 +1,123 @@
 import React, { useState, useEffect } from 'react'
-import { Typography, Container } from '@material-ui/core'
 import axios from 'axios'
-import CountryList from './components/CountryList'
-import CountryDetail from './components/CountryDetail'
+import './index.css'
+import InputWithLabel from './components/InputWithLabel'
+import List from './components/List'
 
-/* const CountryList = ({
-  searchResult,
-  randomVariable,
-  searchTerm,
-  selectedCountry,
-}) => {
-  if (
-    searchTerm === undefined &&
-    selectedCountry === undefined &&
-    searchResult.length === 250
-  ) {
-    return searchResult.map(country => (
-      <>
-        <Typography variant="h6">
-          <div key={country.alpha3Code}>
-            {country.name} ::: {country.alpha3Code}{' '}
-          </div>
-        </Typography>
-      </>
-    ))
-  } else {
-    return searchResult.map(country => (
-      <>
-        <Typography variant="h6">
-          <div key={country.alpha3Code}>
-            {country.name} ::: {country.alpha3Code}
-          </div>
-          <button onClick={() => randomVariable(country)}>show</button>
-        </Typography>
-      </>
-    ))
-  }
-}
-
-const Weather = ({ capital }) => {
-  const [weather, setWeather] = useState(null)
+function App() {
+  const [searchTerm, setSearchTerm] = useState('af')
+  const [countries, setCountries] = useState([])
+  const [results, setResults] = useState([])
+  const [flag, setFlag] = useState(false)
 
   useEffect(() => {
     axios
-      .get(
-        `http://api.weatherstack.com/current?access_key=${process.env.REACT_APP_WEATHER_TOKEN}&query=${capital}`
-      )
-      .then(response => setWeather(response.data))
+      .get(`https://restcountries.eu/rest/v2/all?fields=name;alpha3Code`)
+      .then((response) => {
+        setCountries(response.data)
+      })
   }, [])
 
-  if (!weather) {
-    return <div>No weather data available for {capital} </div>
-  }
+  const searchedCountriesStartsWith = countries.filter((country) => {
+    return country.name.toLowerCase().startsWith(searchTerm.toLowerCase())
+  })
 
-  return (
-    <div>
-      <Container>
-        <Typography variant="h4">
-          Current Weather in {capital}
-          <br />
-          <img
-            alt={weather.current.weather_descriptions[0]}
-            src={weather.current.weather_icons[0]}
-          />
-          <br />
-        </Typography>
-        <Typography variant="h6">
-          <Typography paragraph>
-            <strong>Temperature: </strong> {weather.current.temperature} celsius
-          </Typography>
-          <Typography paragraph>
-            <strong>Wind</strong> {weather.current.wind_speed} kph direction{' '}
-            {weather.current.wind_dir}
-          </Typography>
-        </Typography>
-      </Container>
-    </div>
-  )
-}
+  const searchedCountriesIncludes = countries.filter((country) => {
+    return country.name.toLowerCase().includes(searchTerm.toLowerCase())
+  })
 
-const CountryDetail = props => {
-  return (
-    <div>
-      <Container>
-        <Typography variant="h2">{props.name}</Typography>
-        <Typography list>
-          <ul>
-            <li>Capital: {props.capital}</li>
-            <li>Population: {props.population.toLocaleString()}</li>
-            <li>Time Zone: {props.timezones[0]}</li>
-          </ul>
-        </Typography>
-
-        <Typography variant="h4">Languages:</Typography>
-        <Typography list>
-          <ul>
-            {props.languages.map(lang => (
-              <li key={lang.iso639_1}>{lang.name}</li>
-            ))}
-          </ul>
-        </Typography>
-        <Typography variant="h4">Flag:</Typography>
-        <Typography list>
-          <ul>
-            <li>
-              <img src={props.flag} alt="Offical flag of {props.name}" />
-            </li>
-          </ul>
-        </Typography>
-
-        <Weather capital={props.capital} />
-      </Container>
-    </div>
-  )
-} */
-
-const App = () => {
-  const [countries, setCountries] = useState([])
-  const [searchTerm, setSearchTerm] = useState('')
-  const [searchResult, setSearchResult] = useState([])
-  const [url, setUrl] = useState(
-    `https://restcountries.eu/rest/v2/all?fields=name;alpha3Code`
-  )
-  const [selectedCountry, setSelectedCountry] = useState(null)
-
-  const handleSearchChange = event => {
+  const handleSearch = (event) => {
     setSearchTerm(event.target.value)
-    if (searchTerm === '') {
-      setSearchResult(countries)
-    }
   }
 
-  useEffect(() => {
-    const loadProduct = async () => {
-      const response = await axios.get(url)
-      setCountries(response.data)
-    }
+  const countryInfo = () => {
+    const code = searchedCountriesStartsWith
+      .map((cc) => cc.alpha3Code)
+      .join(';')
+    axios
+      .get(`https://restcountries.eu/rest/v2/alpha?codes=${code}`)
+      .then((response) => {
+        setResults(response.data)
+      })
+    return results
+  }
 
-    loadProduct()
-  }, [])
+  const countryInfoIncl = () => {
+    const code = searchedCountriesIncludes.map((cc) => cc.alpha3Code).join(';')
+    axios
+      .get(`https://restcountries.eu/rest/v2/alpha?codes=${code}`)
+      .then((response) => {
+        setResults(response.data)
+      })
+    return results
+  }
 
-  useEffect(() => {
-    const loadProduct = async () => {
-      const response = await axios.get(url)
-      setSearchResult(response.data)
-    }
-
-    loadProduct()
-  }, [url])
-
-  useEffect(() => {
-    function keyListener(e) {
-      if (e.key === 'Escape') {
-        setSearchTerm('')
-        setSelectedCountry(undefined)
-        setSearchResult(countries)
-        return
-      }
-    }
-    document.addEventListener('keydown', keyListener)
-
-    return () => document.removeEventListener('keydown', keyListener)
-  }, [url])
-
-  const handleSubmit = e => {
+  const handleSubmit = (e) => {
     e.preventDefault()
+    if (searchedCountriesStartsWith.length === 0) {
+      setFlag(true)
+      return
+    }
+    if (searchedCountriesStartsWith.length > 10) {
+      alert('Too many results, please refine search criteria')
+      return
+    }
+    countryInfo()
+  }
 
-    const filter = searchResult.filter(country =>
-      country.name
-        .toLocaleLowerCase()
-        .startsWith(searchTerm.toLocaleLowerCase().trim())
+  const handleSubmitIncl = (e) => {
+    e.preventDefault()
+    if (searchedCountriesIncludes.length === 0) {
+      setFlag(true)
+      return
+    }
+    if (searchedCountriesIncludes.length > 10) {
+      alert('Too many results, please refine search criteria')
+      return
+    }
+    countryInfoIncl()
+  }
+
+  const countryDetails = (item) => {
+    const newResultsItem = results.filter(
+      (country) => item.name === country.name
     )
-
-    if (filter.length === 0) {
-      return
-    } else if (filter.length === 1) {
-      const country = filter[0]
-      console.log(country)
-      setUrl(
-        `https://restcountries.eu/rest/v2/alpha?codes=${country.alpha3Code}`
-      )
-      console.log(country)
-
-      //setSearchResult(country)
-      setSearchTerm('')
-      return
-    } else if (filter.length >= 10) {
-      alert('too many results, please refine search criteria')
+    const newCountriesItem = countries.filter(
+      (country) => item.name === country.name
+    )
+    if (results.length > 0) {
+      setResults(newResultsItem)
       return
     } else {
-      const countryInfo = () => {
-        const code = filter.map(cc => cc.alpha3Code).join(';')
-        setUrl(`https://restcountries.eu/rest/v2/alpha?codes=${code}`)
-        return
-      }
-      countryInfo()
-      console.log(filter)
-      setSearchResult(filter)
-
-      setSearchTerm('')
+      setResults(newCountriesItem)
+      return
     }
   }
 
-  const handleReset = e => {
-    e.preventDefault()
-    setSearchTerm('')
-    setSelectedCountry(undefined)
-    setSearchResult(countries)
-  }
   return (
     <div>
-      <Container>
-      <h1>Countries</h1>
-      <Typography list>
+      <h1>Countries of the World</h1>
+      <div>
+        <i>Search for a country to learn details</i>
+      </div>
 
-      <form>
-        <input
-          type="search"
-          placeholder="search"
-          value={searchTerm}
-          onChange={handleSearchChange}
-        />
-        <button onClick={handleSubmit}>search</button>
-        <button onClick={handleReset}>reset</button>
-      </form>
-      {selectedCountry ? (
-        <CountryDetail {...selectedCountry} />
-      ) : (
-        <CountryList
-          searchResult={searchResult}
-          url={url}
-          randomVariable={country => setSelectedCountry(country)}
-        />
-      )}
-            </Typography>
-
-      </Container>
+      <InputWithLabel
+        id="search"
+        label="Search"
+        value={searchTerm}
+        isFocused
+        onInputChange={handleSearch}
+        onInputSubmit={handleSubmit}
+        onInputSubmit1={handleSubmitIncl}
+      >
+        <strong>Search:</strong>
+      </InputWithLabel>
+      <List
+        countries={countries}
+        results={results}
+        flag={flag}
+        onDetailClick={countryDetails}
+      />
     </div>
   )
 }
